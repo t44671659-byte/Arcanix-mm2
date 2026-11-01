@@ -730,3 +730,300 @@ LoadArcanix = function()
 end
 
 print("ARCANIX v2.0 Fully Loaded") 
+-- ============================================================
+-- 🦅 ARCANIX v2.0 (Part 5: AimBot & Fly Functions)
+-- ============================================================
+
+-- Функция создания слайдера (для FOV и Fly Speed)
+local function createSlider(parent, txt, minV, maxV, default, cb)
+    local h = Instance.new("Frame")
+    h.Size = UDim2.new(1, 0, 0, 46)
+    h.BackgroundColor3 = Themes[Theme].Sub
+    h.Parent = parent
+    corner(h, 8)
+
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -80, 0, 18)
+    l.Position = UDim2.new(0, 12, 0, 4)
+    l.BackgroundTransparency = 1
+    l.Text = txt
+    l.TextColor3 = Themes[Theme].Text
+    l.Font = Enum.Font.Arcade
+    l.TextSize = 14
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = h
+
+    local vl = Instance.new("TextLabel")
+    vl.Size = UDim2.new(0, 60, 0, 18)
+    vl.Position = UDim2.new(1, -70, 0, 4)
+    vl.BackgroundTransparency = 1
+    vl.Text = tostring(default)
+    vl.TextColor3 = Accent
+    vl.Font = Enum.Font.Arcade
+    vl.TextSize = 14
+    vl.TextXAlignment = Enum.TextXAlignment.Right
+    vl.Parent = h
+
+    local tr = Instance.new("Frame")
+    tr.Size = UDim2.new(1, -24, 0, 6)
+    tr.Position = UDim2.new(0, 12, 1, -14)
+    tr.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    tr.Parent = h
+    corner(tr, 3)
+
+    local fl = Instance.new("Frame")
+    fl.Size = UDim2.new((default - minV) / (maxV - minV), 0, 1, 0)
+    fl.BackgroundColor3 = Accent
+    fl.Parent = tr
+    corner(fl, 3)
+
+    local kn = Instance.new("Frame")
+    kn.Size = UDim2.new(0, 14, 0, 14)
+    kn.AnchorPoint = Vector2.new(0.5, 0.5)
+    kn.Position = UDim2.new((default - minV) / (maxV - minV), 0, 0.5, 0)
+    kn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    kn.Parent = tr
+    corner(kn, 7)
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -24, 0, 24)
+    btn.Position = UDim2.new(0, 12, 1, -24)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.Parent = h
+
+    local drag = false
+    local function update(x)
+        local rel = math.clamp((x - tr.AbsolutePosition.X) / tr.AbsoluteSize.X, 0, 1)
+        local val = math.floor(minV + (maxV - minV) * rel + 0.5)
+        fl.Size = UDim2.new(rel, 0, 1, 0)
+        kn.Position = UDim2.new(rel, 0, 0.5, 0)
+        vl.Text = tostring(val)
+        if cb then cb(val) end
+    end
+
+    btn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = true; update(i.Position.X) end end)
+    U.InputChanged:Connect(function(i) if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i.Position.X) end end)
+    U.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end end)
+end
+
+-- Функция выбора режима Аимбота
+local function createAimModeSelector(parent)
+    local h = Instance.new("Frame")
+    h.Size = UDim2.new(1, 0, 0, 60)
+    h.BackgroundColor3 = Themes[Theme].Sub
+    h.Parent = parent
+    corner(h, 8)
+
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -20, 0, 18)
+    l.Position = UDim2.new(0, 12, 0, 4)
+    l.BackgroundTransparency = 1
+    l.Text = "Режим:"
+    l.TextColor3 = Themes[Theme].Text
+    l.Font = Enum.Font.Arcade
+    l.TextSize = 14
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = h
+
+    local bh = Instance.new("Frame")
+    bh.Size = UDim2.new(1, -24, 0, 24)
+    bh.Position = UDim2.new(0, 12, 0, 26)
+    bh.BackgroundTransparency = 1
+    bh.Parent = h
+    local lay = Instance.new("UIListLayout")
+    lay.FillDirection = Enum.FillDirection.Horizontal
+    lay.Padding = UDim.new(0, 4)
+    lay.Parent = bh
+
+    local function makeBtn(name, mode)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 100, 1, 0)
+        b.BackgroundColor3 = Aim_Mode == mode and Accent or Color3.fromRGB(60, 60, 65)
+        b.Text = name
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Font = Enum.Font.Arcade
+        b.TextSize = 12
+        b.Parent = bh
+        corner(b, 6)
+        
+        b.MouseButton1Click:Connect(function()
+            Aim_Mode = mode
+            for _, v in ipairs(bh:GetChildren()) do
+                if v:IsA("TextButton") then
+                    T:Create(v, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
+                end
+            end
+            T:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = Accent}):Play()
+        end)
+    end
+    makeBtn("ShiftLock", "ShiftLock")
+    makeBtn("RMB", "RMB")
+    makeBtn("Всегда", "Always")
+end
+
+-- ПЕРЕМЕННЫЕ АИМБОТА И ФЛАЯ
+local Aim_Enabled = false
+local Aim_Mode = "ShiftLock"
+local Aim_FOV = 150
+local Aim_Smooth = 50
+local Aim_WallCheck = true
+local CurrentTarget = nil
+
+local Fly_Enabled = false
+local Fly_Speed = 50
+local flyVel = nil
+
+-- КРУЖОК FOV
+local fovCircle = Instance.new("Frame")
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovCircle.Size = UDim2.new(0, Aim_FOV * 2, 0, Aim_FOV * 2)
+fovCircle.BackgroundTransparency = 1
+fovCircle.Visible = false
+fovCircle.Parent = gui
+corner(fovCircle, 9999)
+local fovStroke = stroke(fovCircle, Accent, 1.5, 0.3)
+
+-- ДОБАВЛЯЕМ В UI
+createToggle(pages["AimBot"], "Включить AimBot", false, function(v) Aim_Enabled = v; fovCircle.Visible = v end)
+createToggle(pages["AimBot"], "Wall-Check", true, function(v) Aim_WallCheck = v end)
+createAimModeSelector(pages["AimBot"])
+createSlider(pages["AimBot"], "FOV (Радиус)", 50, 400, 150, function(v) 
+    Aim_FOV = v
+    fovCircle.Size = UDim2.new(0, v*2, 0, v*2)
+end)
+createSlider(pages["AimBot"], "Сила лока (100 = СНАП)", 1, 100, 50, function(v) Aim_Smooth = v end)
+
+local flySlider
+createToggle(pages["Misc"], "Fly (Полет)", false, function(v) 
+    Fly_Enabled = v 
+    if flySlider then flySlider.Visible = v end 
+end)
+flySlider = createSlider(pages["Misc"], "Скорость полета", 10, 200, 50, function(v) Fly_Speed = v end)
+flySlider.Visible = false
+
+-- ==========================================
+-- ЛОГИКА АИМБОТА
+-- ==========================================
+local isAiming = false
+U.InputBegan:Connect(function(i, gp) 
+    if gp then return end
+    if Aim_Enabled and Aim_Mode == "RMB" and i.UserInputType == Enum.UserInputType.MouseButton2 then isAiming = true end 
+end)
+U.InputEnded:Connect(function(i) 
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then isAiming = false end 
+end)
+
+local function hasLineOfSight(targetPart)
+    if not Aim_WallCheck then return true end
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {LP.Character, Camera}
+    local rayResult = W:Raycast(origin, direction, rayParams)
+    if not rayResult then return true end
+    if rayResult.Instance:IsDescendantOf(targetPart.Parent) then return true end
+    return false
+end
+
+local function getTarget()
+    if CurrentTarget and CurrentTarget.Parent and CurrentTarget.Parent:FindFirstChildOfClass("Humanoid") and CurrentTarget.Parent.Humanoid.Health > 0 then
+        if hasLineOfSight(CurrentTarget) then return CurrentTarget end
+    end
+    CurrentTarget = nil
+    local closest, shortest = nil, Aim_FOV
+    local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    
+    for _, plr in ipairs(P:GetPlayers()) do
+        if plr ~= LP and (not TeamCheck or plr.Team ~= LP.Team) then
+            local char = plr.Character
+            if char then
+                local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if targetPart and hum and hum.Health > 0 then
+                    local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                    if onScreen then
+                        local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                        if d < shortest then
+                            if hasLineOfSight(targetPart) then
+                                shortest = d
+                                closest = targetPart
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    CurrentTarget = closest
+    return CurrentTarget
+end
+
+R.RenderStepped:Connect(function(dt)
+    if not Aim_Enabled then CurrentTarget = nil; return end
+    local active = false
+    if Aim_Mode == "Always" then active = true
+    elseif Aim_Mode == "RMB" then active = isAiming
+    elseif Aim_Mode == "ShiftLock" then active = (U.MouseBehavior == Enum.MouseBehavior.LockCenter) end
+    
+    if not active then CurrentTarget = nil; return end
+    
+    local target = getTarget()
+    if target then
+        local current = Camera.CFrame
+        local desired = CFrame.new(current.Position, target.Position)
+        if Aim_Smooth >= 99 then
+            Camera.CFrame = desired
+        else
+            local smooth = Aim_Smooth / 100
+            local alpha = 1 - math.pow(1 - smooth, dt * 60)
+            Camera.CFrame = current:Lerp(desired, alpha)
+        end
+    end
+end)
+
+-- ==========================================
+-- ЛОГИКА ФЛАЯ
+-- ==========================================
+R.RenderStepped:Connect(function()
+    if Fly_Enabled then
+        if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LP.Character.HumanoidRootPart
+            if not flyVel then
+                flyVel = Instance.new("BodyVelocity")
+                flyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                flyVel.Velocity = Vector3.zero
+                flyVel.Parent = hrp
+            end
+            
+            local moveDir = Vector3.zero
+            local camLook = Camera.CFrame.LookVector
+            local camRight = Camera.CFrame.RightVector
+            
+            if U:IsKeyDown(Enum.KeyCode.W) then moveDir += camLook end
+            if U:IsKeyDown(Enum.KeyCode.S) then moveDir -= camLook end
+            if U:IsKeyDown(Enum.KeyCode.A) then moveDir -= camRight end
+            if U:IsKeyDown(Enum.KeyCode.D) then moveDir += camRight end
+            if U:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
+            
+            local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.MoveDirection.Magnitude > 0.1 then
+                local flatLook = Vector3.new(camLook.X, 0, camLook.Z).Unit
+                local flatRight = Vector3.new(camRight.X, 0, camRight.Z).Unit
+                moveDir += (camLook * hum.MoveDirection:Dot(flatLook)) + (camRight * hum.MoveDirection:Dot(flatRight))
+            end
+
+            if moveDir.Magnitude > 0 then
+                flyVel.Velocity = moveDir.Unit * Fly_Speed
+            else
+                flyVel.Velocity = Vector3.zero
+            end
+        end
+    else
+        if flyVel then flyVel:Destroy(); flyVel = nil end
+    end
+end)
+
+print("ARCANIX v2.0 Fully Loaded (All Parts Included)")
